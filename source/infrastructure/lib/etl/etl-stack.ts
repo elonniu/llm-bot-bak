@@ -81,7 +81,7 @@ export class EtlStack extends NestedStack {
             endpointConfigName: endpointConfig.attrEndpointConfigName,
             endpointName: 'etl-endpoint',
         });
-        
+
         if (typeof etlEndpoint.endpointName === 'undefined') {
             throw new Error('etlEndpoint.endpointName is undefined');
         }
@@ -151,14 +151,14 @@ export class EtlStack extends NestedStack {
             })
         )
 
-        // Creata glue job to process files speicified in s3 bucket and prefix
+        // Create glue job to process files specified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
                 glueVersion: glue.GlueVersion.V3_0,
                 pythonVersion: glue.PythonVersion.THREE_NINE,
                 script: glue.Code.fromAsset(join(__dirname, '../../../lambda/job/glue-job-script.py')),
             }),
-            // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
+            // Worker Type is not supported for Job Command python shell and Both workerType and workerCount must be set...
             // workerType: glue.WorkerType.G_2X,
             // workerCount: 2,
             maxConcurrentRuns: 200,
@@ -266,7 +266,7 @@ export class EtlStack extends NestedStack {
             // inputPath should point to the root since we want to pass the entire payload to the iterator
             inputPath: '$',
             // itemsPath should reference an array. We need to construct this array based on batchIndices
-            itemsPath: sfn.JsonPath.stringAt('$.batchIndices'), 
+            itemsPath: sfn.JsonPath.stringAt('$.batchIndices'),
             // set the max concurrency to 0 to run all the jobs in parallel
             maxConcurrency: 0,
             parameters: {
@@ -314,12 +314,12 @@ export class EtlStack extends NestedStack {
 
         offlineChoice.when(sfn.Condition.stringEquals('$.offline', 'true'), mapState)
             .when(sfn.Condition.stringEquals('$.offline', 'false'), onlineGlueJob)
-        
+
         // add the notify task to both online and offline branches
         mapState.next(notifyTask);
 
         const sfnDefinition = lambdaETLIntegration.next(offlineChoice)
-    
+
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
             stateMachineType: sfn.StateMachineType.STANDARD,
